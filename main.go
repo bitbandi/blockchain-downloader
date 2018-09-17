@@ -1,19 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
+	"flag"
+	"fmt"
+	"log"
 	"net"
 	"os"
+	"strconv"
+
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"flag"
-	"log"
-	"encoding/binary"
-	"fmt"
 )
 
 func main() {
 	//	flag.StringVar(&userAgent, "user-agent", defaultUserAgent, "http client user agent")
-	messageStartPtr := flag.Uint("messagestart", 0xD9B4BEF9, "bitcoin protocol message start")
+	messageStartStrPtr := flag.String("messagestart", "a3d5c2f9", "bitcoin protocol message start hex string")
 	protocolVersionPtr := flag.Uint("protocolversion", 99999, "bitcoin protocol version")
 	nodeHostnamePtr := flag.String("hostname", "127.0.0.1", "node hostname")
 	nodePortPtr := flag.Uint("port", 8333, "node port")
@@ -26,7 +29,8 @@ func main() {
 	}
 
 	messageStartBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(messageStartBytes, uint32(*messageStartPtr))
+	messageStartInt, err := strconv.ParseUint("0x" + *messageStartStrPtr, 0, 32)
+	binary.BigEndian.PutUint32(messageStartBytes, uint32(messageStartInt))
 	bitcoinNet := wire.BitcoinNet(binary.LittleEndian.Uint32(messageStartBytes))
 	protocolVersion := uint32(*protocolVersionPtr) // wire.ProtocolVersion
 
