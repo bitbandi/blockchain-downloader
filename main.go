@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/bitbandi/btcd/wire"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
@@ -52,6 +52,7 @@ func main() {
 		log.Fatalln("Random failed:", err.Error())
 	}
 	msgVer := wire.NewMsgVersion(me, you, nonce, 0)
+	msgVer.AddService(wire.SFNodeNetwork)
 	msgVer.ProtocolVersion = int32(protocolVersion)
 	_, err = wire.WriteMessageWithEncodingN(conn, msgVer, protocolVersion, bitcoinNet, wire.BaseEncoding)
 	if err != nil {
@@ -66,7 +67,19 @@ func main() {
 	defer f.Close()
 
 	for {
-		_, rmsg, buf, err := wire.ReadMessageWithEncodingN(conn, protocolVersion, bitcoinNet, wire.BaseEncoding)
+		_, rmsg, buf, err := wire.ReadMessageBase(conn, protocolVersion, bitcoinNet)
+		if err != nil {
+			log.Fatalln("Read message failed:", err.Error())
+		}
+		_, ok := rmsg.(*wire.MsgBlock)
+		if !ok { // parse if no MsgBlock type
+			pr := bytes.NewBuffer(buf)
+			err = rmsg.BtcDecode(pr, protocolVersion, wire.BaseEncoding)
+			if err != nil {
+				log.Fatalln("Decode failed:", err.Error())
+			}
+		}
+
 		switch msg := rmsg.(type) {
 		case *wire.MsgVersion:
 			_, err = wire.WriteMessageWithEncodingN(conn, wire.NewMsgVerAck(), protocolVersion, bitcoinNet, wire.BaseEncoding)
@@ -106,8 +119,10 @@ func main() {
 			f.Write(bufLen)
 			f.Write(buf)
 			requestCount--
-			if (requestCount <= 0) {
-				_, err = wire.WriteMessageWithEncodingN(conn, wire.NewMsgGetBlocks(&lastRequestedHash), protocolVersion, bitcoinNet, wire.BaseEncoding)
+			if requestCount <= 0 {
+				msgGetBlocks := wire.NewMsgGetBlocks(&chainhash.Hash{})
+				msgGetBlocks.AddBlockLocatorHash(&lastRequestedHash)
+				_, err = wire.WriteMessageWithEncodingN(conn, msgGetBlocks, protocolVersion, bitcoinNet, wire.BaseEncoding)
 				if err != nil {
 					log.Fatalln("Write to node failed:", err.Error())
 				}
