@@ -21,6 +21,7 @@ func main() {
 	nodeHostnamePtr := flag.String("hostname", "127.0.0.1", "node hostname")
 	nodePortPtr := flag.Uint("port", 8333, "node port")
 	outFilePtr := flag.String("out", "", "output file")
+	startHashPtr := flag.String("start", "", "download from this blockhash")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 
@@ -92,7 +93,15 @@ func main() {
 				log.Fatalln("Write to node failed:", err.Error())
 			}
 		case *wire.MsgVerAck:
-			_, err = wire.WriteMessageWithEncodingN(conn, wire.NewMsgGetBlocks(&chainhash.Hash{}), protocolVersion, bitcoinNet, wire.BaseEncoding)
+			getBlocksMsg := wire.NewMsgGetBlocks(&chainhash.Hash{})
+			if len(*startHashPtr) > 0 {
+				startHash, err := chainhash.NewHashFromStr(*startHashPtr)
+				if err != nil {
+					log.Fatalln("Invalid start hash:", err.Error())
+				}
+				getBlocksMsg.AddBlockLocatorHash(startHash)
+			}
+			_, err = wire.WriteMessageWithEncodingN(conn, getBlocksMsg, protocolVersion, bitcoinNet, wire.BaseEncoding)
 			if err != nil {
 				log.Fatalln("Write to node failed:", err.Error())
 			}
