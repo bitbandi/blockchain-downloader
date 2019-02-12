@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -14,6 +15,13 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
+func ReverseString(bytes []byte) string {
+	for left, right := 0, len(bytes)-1; left < right; left, right = left+1, right-1 {
+		bytes[left], bytes[right] = bytes[right], bytes[left]
+	}
+	return hex.EncodeToString(bytes[:])
+}
+
 func main() {
 	//	flag.StringVar(&userAgent, "user-agent", defaultUserAgent, "http client user agent")
 	messageStartStrPtr := flag.String("messagestart", "a3d5c2f9", "bitcoin protocol message start hex string")
@@ -22,6 +30,8 @@ func main() {
 	nodePortPtr := flag.Uint("port", 8333, "node port")
 	outFilePtr := flag.String("out", "", "output file")
 	startHashPtr := flag.String("start", "", "download from this blockhash")
+	debugPtr := flag.Bool("debug", false, "debug mode")
+	dumpPtr := flag.Bool("dump", false, "debug mode")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 
@@ -112,6 +122,9 @@ func main() {
 					if inv.Type != wire.InvTypeBlock {
 						continue
 					}
+					if *debugPtr {
+						println("Req block: ", inv.Hash.String())
+					}
 					lastRequestedHash = inv.Hash
 					requestCount++
 					msgGetData.AddInvVect(inv)
@@ -127,8 +140,17 @@ func main() {
 			binary.LittleEndian.PutUint32(bufLen, uint32(len(buf)))
 			f.Write(bufLen)
 			f.Write(buf)
+			if *dumpPtr {
+				println(hex.EncodeToString(buf))
+			}
+			if *debugPtr {
+				println("we got block prevhash", ReverseString(buf[4:36]))
+			}
 			requestCount--
 			if requestCount <= 0 {
+				if *debugPtr {
+					println("getblocks: ", lastRequestedHash.String())
+				}
 				msgGetBlocks := wire.NewMsgGetBlocks(&chainhash.Hash{})
 				msgGetBlocks.AddBlockLocatorHash(&lastRequestedHash)
 				_, err = wire.WriteMessageWithEncodingN(conn, msgGetBlocks, protocolVersion, bitcoinNet, wire.BaseEncoding)
