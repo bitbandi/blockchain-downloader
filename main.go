@@ -109,7 +109,7 @@ func main() {
 				if err != nil {
 					log.Fatalln("Invalid start hash:", err.Error())
 				}
-				getBlocksMsg.AddBlockLocatorHash(startHash)
+				_ = getBlocksMsg.AddBlockLocatorHash(startHash)
 			}
 			_, err = wire.WriteMessageWithEncodingN(conn, getBlocksMsg, protocolVersion, bitcoinNet, wire.BaseEncoding)
 			if err != nil {
@@ -152,12 +152,15 @@ func main() {
 					println("getblocks: ", lastRequestedHash.String())
 				}
 				msgGetBlocks := wire.NewMsgGetBlocks(&chainhash.Hash{})
-				msgGetBlocks.AddBlockLocatorHash(&lastRequestedHash)
+				_ = msgGetBlocks.AddBlockLocatorHash(&lastRequestedHash)
 				_, err = wire.WriteMessageWithEncodingN(conn, msgGetBlocks, protocolVersion, bitcoinNet, wire.BaseEncoding)
 				if err != nil {
 					log.Fatalln("Write to node failed:", err.Error())
 				}
 			}
+		default:
+			println(msg.Command())
+			println(hex.Dump(buf))
 		}
 	}
 }
