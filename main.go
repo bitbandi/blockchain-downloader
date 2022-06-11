@@ -79,6 +79,10 @@ func main() {
 	_, err = wire.WriteMessageWithEncodingN(conn, msgVer, protocolVersion, bitcoinNet, wire.BaseEncoding)
 	FatalErr(err, "Write to node failed")
 	lastRequestedHash := chainhash.Hash{}
+	lastReceivedHash := chainhash.Hash{}
+	defer func() {
+		log.Printf("Last received hash: %s", lastReceivedHash.String())
+	}()
 	requestCount := 0
 	f, err := os.Create(*outFilePtr)
 	FatalErr(err, "Create file failed")
@@ -139,6 +143,7 @@ func main() {
 			if *dumpPtr {
 				println(hex.EncodeToString(buf))
 			}
+			_ = lastReceivedHash.SetBytes(buf[4:36])
 			if *debugPtr {
 				println("we got block prevhash", ReverseString(buf[4:36]))
 			}
