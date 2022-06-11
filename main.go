@@ -125,9 +125,12 @@ func main() {
 					if *debugPtr {
 						println("Req block: ", inv.Hash.String())
 					}
+					err = msgGetData.AddInvVect(inv)
+					if err != nil {
+						break
+					}
 					lastRequestedHash = inv.Hash
 					requestCount++
-					msgGetData.AddInvVect(inv)
 				}
 				_, err = wire.WriteMessageWithEncodingN(conn, msgGetData, protocolVersion, bitcoinNet, wire.BaseEncoding)
 				if err != nil {
