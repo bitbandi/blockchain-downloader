@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"os"
 	"strconv"
@@ -49,6 +50,7 @@ func main() {
 	startHashPtr := flag.String("start", "", "download from this blockhash")
 	debugPtr := flag.Bool("debug", false, "debug mode")
 	dumpPtr := flag.Bool("dump", false, "debug mode")
+	maxBlocksPtr := flag.Uint("max", math.MaxUint32, "download max blocks")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 
@@ -88,6 +90,7 @@ func main() {
 	FatalErr(err, "Create file failed")
 	defer DeferClose(f, "Close file failed")
 
+loop:
 	for {
 		_, rmsg, buf, err := wire.ReadMessageBase(conn, protocolVersion, bitcoinNet)
 		FatalErr(err, "Read message failed")
@@ -146,6 +149,10 @@ func main() {
 			_ = lastReceivedHash.SetBytes(buf[4:36])
 			if *debugPtr {
 				println("we got block prevhash", ReverseString(buf[4:36]))
+			}
+			(*maxBlocksPtr)--
+			if (*maxBlocksPtr) <= 0 {
+				break loop
 			}
 			requestCount--
 			if requestCount <= 0 {
