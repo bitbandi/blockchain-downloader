@@ -138,8 +138,10 @@ loop:
 					lastRequestedHash = inv.Hash
 					requestCount++
 				}
-				_, err = wire.WriteMessageWithEncodingN(conn, msgGetData, protocolVersion, bitcoinNet, wire.BaseEncoding)
-				FatalErr(err, "Write to node failed")
+				if len(msgGetData.InvList) > 0 {
+					_, err = wire.WriteMessageWithEncodingN(conn, msgGetData, protocolVersion, bitcoinNet, wire.BaseEncoding)
+					FatalErr(err, "Write to node failed")
+				}
 			}
 		case *wire.MsgBlock:
 			f.Write(messageStartBytes)
