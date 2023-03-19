@@ -170,6 +170,10 @@ loop:
 				_, err = wire.WriteMessageWithEncodingN(conn, msgGetBlocks, protocolVersion, bitcoinNet, wire.BaseEncoding)
 				FatalErr(err, "Write to node failed")
 			}
+		case *wire.MsgAddr:
+		case *wire.MsgGetHeaders:
+		case *wire.MsgFeeFilter:
+			break
 		default:
 			println(msg.Command())
 			println(hex.Dump(buf))
