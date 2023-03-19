@@ -51,6 +51,7 @@ func main() {
 	debugPtr := flag.Bool("debug", false, "debug mode")
 	dumpPtr := flag.Bool("dump", false, "debug mode")
 	maxBlocksPtr := flag.Uint("max", math.MaxUint32, "download max blocks")
+	witnessPtr := flag.Bool("witness", false, "Get witness blocks")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 
@@ -121,8 +122,11 @@ loop:
 			if len(msg.InvList) > 1 {
 				msgGetData := wire.NewMsgGetDataSizeHint(uint(len(msg.InvList)))
 				for _, inv := range msg.InvList {
-					if inv.Type != wire.InvTypeBlock {
+					if inv.Type != wire.InvTypeBlock && inv.Type != wire.InvTypeWitnessBlock {
 						continue
+					}
+					if *witnessPtr {
+						inv.Type = wire.InvTypeWitnessBlock
 					}
 					if *debugPtr {
 						println("Req block: ", inv.Hash.String())
