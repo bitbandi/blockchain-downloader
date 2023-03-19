@@ -85,7 +85,7 @@ func main() {
 	lastRequestedHash := chainhash.Hash{}
 	lastReceivedHash := chainhash.Hash{}
 	defer func() {
-		log.Printf("Last received hash: %s", lastReceivedHash.String())
+		log.Printf("Last received prevblock hash: %s", lastReceivedHash.String())
 	}()
 	requestCount := 0
 	f, err := os.Create(*outFilePtr)
