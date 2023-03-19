@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bitbandi/btcd/wire"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -91,8 +92,10 @@ func main() {
 	FatalErr(err, "Create file failed")
 	defer DeferClose(f, "Close file failed")
 
+	doLoop := true
+	endTimer := time.NewTimer(10 * time.Second)
 loop:
-	for {
+	for doLoop {
 		_, rmsg, buf, err := wire.ReadMessageBase(conn, protocolVersion, bitcoinNet)
 		FatalErr(err, "Read message failed")
 		_, ok := rmsg.(*wire.MsgBlock)
@@ -118,6 +121,12 @@ loop:
 			}
 			_, err = wire.WriteMessageWithEncodingN(conn, getBlocksMsg, protocolVersion, bitcoinNet, wire.BaseEncoding)
 			FatalErr(err, "Write to node failed")
+			endTimer.Stop()
+			endTimer.Reset(10 * time.Second)
+			go func() {
+				<-endTimer.C
+				doLoop = false
+			}()
 		case *wire.MsgInv:
 			if len(msg.InvList) > 1 {
 				msgGetData := wire.NewMsgGetDataSizeHint(uint(len(msg.InvList)))
@@ -156,6 +165,7 @@ loop:
 			if *debugPtr {
 				println("we got block prevhash", ReverseString(buf[4:36]))
 			}
+			endTimer.Stop()
 			(*maxBlocksPtr)--
 			if (*maxBlocksPtr) <= 0 {
 				break loop
@@ -169,6 +179,11 @@ loop:
 				_ = msgGetBlocks.AddBlockLocatorHash(&lastRequestedHash)
 				_, err = wire.WriteMessageWithEncodingN(conn, msgGetBlocks, protocolVersion, bitcoinNet, wire.BaseEncoding)
 				FatalErr(err, "Write to node failed")
+				endTimer.Reset(10 * time.Second)
+				go func() {
+					<-endTimer.C
+					doLoop = false
+				}()
 			}
 		case *wire.MsgAddr:
 		case *wire.MsgGetHeaders:
