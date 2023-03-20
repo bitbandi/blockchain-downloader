@@ -206,6 +206,7 @@ loop:
 					doLoop = false
 				}()
 			}
+		case *wire.MsgAlert:
 		case *wire.MsgAddr:
 		case *wire.MsgGetHeaders:
 		case *wire.MsgFeeFilter:
