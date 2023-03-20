@@ -18,6 +18,11 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
+const (
+	InvMWebFlag                   = 1 << 29
+	InvTypeMWebBlock wire.InvType = wire.InvTypeWitnessBlock | InvMWebFlag
+)
+
 func FatalErr(err error, str string) {
 	if err != nil {
 		log.Fatalf("%s: %s", str, err.Error())
@@ -41,6 +46,18 @@ func ReverseString(bytes []byte) string {
 	return hex.EncodeToString(bytes[:])
 }
 
+func IsInvBlock(invtype wire.InvType) bool {
+	switch invtype {
+	case wire.InvTypeBlock:
+		return true
+	case wire.InvTypeWitnessBlock:
+		return true
+	case InvTypeMWebBlock:
+		return true
+	}
+	return false
+}
+
 func main() {
 	//	flag.StringVar(&userAgent, "user-agent", defaultUserAgent, "http client user agent")
 	messageStartStrPtr := flag.String("messagestart", "a3d5c2f9", "bitcoin protocol message start hex string")
@@ -53,6 +70,7 @@ func main() {
 	dumpPtr := flag.Bool("dump", false, "debug mode")
 	maxBlocksPtr := flag.Uint("max", math.MaxUint32, "download max blocks")
 	witnessPtr := flag.Bool("witness", false, "Get witness blocks")
+	mwebPtr := flag.Bool("mweb", false, "Get mweb blocks (+witness)")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 
@@ -131,10 +149,13 @@ loop:
 			if len(msg.InvList) > 1 {
 				msgGetData := wire.NewMsgGetDataSizeHint(uint(len(msg.InvList)))
 				for _, inv := range msg.InvList {
-					if inv.Type != wire.InvTypeBlock && inv.Type != wire.InvTypeWitnessBlock {
+					if !IsInvBlock(inv.Type) {
+						println("got inv: ", inv.Type.String())
 						continue
 					}
-					if *witnessPtr {
+					if *mwebPtr {
+						inv.Type = InvTypeMWebBlock
+					} else if *witnessPtr {
 						inv.Type = wire.InvTypeWitnessBlock
 					}
 					if *debugPtr {
