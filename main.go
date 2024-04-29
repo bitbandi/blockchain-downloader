@@ -78,6 +78,12 @@ func main() {
 		log.Fatalln("Invalid output file")
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			os.Exit(1)
+		}
+	}()
+
 	messageStartBytes := make([]byte, 4)
 	messageStartInt, err := strconv.ParseUint("0x" + *messageStartStrPtr, 0, 32)
 	binary.BigEndian.PutUint32(messageStartBytes, uint32(messageStartInt))
