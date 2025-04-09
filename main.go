@@ -216,6 +216,7 @@ loop:
 		case *wire.MsgAddr:
 		case *wire.MsgGetHeaders:
 		case *wire.MsgFeeFilter:
+		case *wire.MsgSendHeaders:
 			break
 		default:
 			println(msg.Command())
